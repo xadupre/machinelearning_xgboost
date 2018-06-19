@@ -1,0 +1,8 @@
+[submodule "machinelearning"]
+	path = machinelearning
+	url = https://github.com/xadupre/machinelearning.git
+	branch = master
+[submodule "xgboost"]
+	path = xgboost
+	url = https://github.com/xadupre/xgboost.git
+	branch = master

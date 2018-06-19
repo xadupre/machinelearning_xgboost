@@ -1,0 +1,69 @@
+environment:
+
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_compiler.cmd"
+
+  matrix:
+
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6.x"
+      PYTHON_ARCH: "64"
+
+init:
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+
+install:
+  - git submodule update --init
+  - set DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+build: off
+
+before_build:
+  - cmd: dotnet --version
+
+before_test:
+  # XGBoost
+  - cd xgboost
+  - mkdir build
+  - cd build
+  - cmake .. -G"Visual Studio 14 2015 Win64"
+  - msbuild xgboost.sln
+  - cd ..
+  - cd ..
+  # ML.net
+  - cd machinelearning
+  - cmd /C build.cmd -Debug
+  - cmd /C build.cmd -Release
+  - cd ..
+  # Move DLL
+  - mkdir machinelearning\dist\Release
+  - copy machinelearning\bin\AnyCPU.Release\Microsoft.ML\netstandard2.0\*.dll machinelearning\dist\Release
+  - copy machinelearning\bin\AnyCPU.Release\Microsoft.ML.Api\netstandard2.0\*.dll machinelearning\dist\Release
+  - copy machinelearning\bin\AnyCPU.Release\Microsoft.ML.Maml\netstandard2.0\*.dll machinelearning\dist\Release
+  - copy machinelearning\bin\x64.Release\Native\*.dll machinelearning\dist\Release
+  - copy xgboost\lib\*.dll machinelearning\dist\Release
+  - mkdir machinelearning\dist\Debug
+  - copy machinelearning\bin\AnyCPU.Debug\Microsoft.ML\netstandard2.0\*.dll machinelearning\dist\Debug
+  - copy machinelearning\bin\AnyCPU.Debug\Microsoft.ML.Api\netstandard2.0\*.dll machinelearning\dist\Debug
+  - copy machinelearning\bin\AnyCPU.Debug\Microsoft.ML.Maml\netstandard2.0\*.dll machinelearning\dist\Debug
+  - copy machinelearning\bin\x64.Debug\Native\*.dll machinelearning\dist\Debug
+  - copy xgboost\lib\*.dll machinelearning\dist\Debug
+  # machinelearning_xgboost
+  - cd machinelearning_xgboost
+  - cmd /C dotnet build -c Debug
+  - cmd /C dotnet build -c Release
+  - cd ..
+  
+test_script:
+  # Run unit test for ML.net
+  - cd machinelearning
+  - cmd /C build.cmd -runTests -Release
+  - cd ..
+  # Run unit test for machinelearning_xgboost
+  - cd machinelearning_xgboost
+  - cmd /C dotnet test -c Debug TestXGBoostWrapper
+  - cmd /C dotnet test -c Release TestXGBoostWrapper
+  - cd ..

@@ -1,0 +1,91 @@
+dist: trusty
+sudo: false
+language: python
+git:
+  submodules: true
+  
+matrix:
+  include:
+    - python: 3.6
+      env: &xplat-env
+        - BUILD_OPTS=--xplat
+        - NUNIT_PATH=~/.nuget/packages/nunit.consolerunner/3.*/tools/nunit3-console.exe
+      addons: &xplat-addons
+        apt:
+          sources:
+          - sourceline: deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-trusty-prod trusty main
+            key_url: https://packages.microsoft.com/keys/microsoft.asc
+          packages:
+            - dotnet-sdk-2.1.200
+
+env:
+  global:
+    - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+    - SEGFAULT_SIGNALS=all
+    - PYTHONUNBUFFERED=True
+    - DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+addons:
+  apt:
+    packages:
+      - clang
+      - cmake
+      - libunwind8
+      - curl
+      # ubuntu https://docs.microsoft.com/en-us/dotnet/core/linux-prerequisites?tabs=netcore2x#ubuntu
+      - libunwind8
+      - liblttng-ust0
+      - libcurl3
+      - libssl1.0.0
+      - libuuid1
+      - libkrb5-3
+      - zlib1g
+      - libicu52
+
+before_install:
+  # Set-up dll path for embedded tests
+  - PY_LIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
+  - export LD_LIBRARY_PATH=$PY_LIBDIR:$LD_LIBRARY_PATH
+  - export DOTNET_CLI_TELEMETRY_OPTOUT=1
+  # Addition to pythonnet build
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq g++-5 --allow-unauthenticated
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
+
+before_script:
+  # XGBoost
+  - cd xgboost
+  - make -j4
+  - cd ..
+  # ML.net
+  - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc
+  - gcc --version
+  - cd machinelearning
+  - bash build.sh -Release
+  - bash build.sh -Debug
+  # Copy binaries.
+  - bash -c "dotnet publish Microsoft.ML.sln -o ../../dist/Debug -c Debug --self-contained" || true
+  - bash -c "dotnet publish Microsoft.ML.sln -o ../../dist/Release -c Release --self-contained" || true
+  - cd ..
+  - cp machinelearning/bin/x64.Debug/Native/*.so machinelearning/dist/Debug
+  - cp machinelearning/bin/x64.Release/Native/*.so machinelearning/dist/Release
+  - cp xgboost/lib/*.so machinelearning/dist/Release
+  - cp xgboost/lib/*.so machinelearning/dist/Debug
+  # Build 
+  - cd machinelearning_xgboost
+  - dotnet build -c Debug
+  - dotnet build -c Release
+  - cd ..
+
+script:
+  # Run unit test for ML.net
+  - cd machinelearning
+  - bash build.sh -runTests -Release
+  - cd ..
+  # Run unit tests for machinelearning_xgboost
+  - cd machinelearning_xgboost
+  - dotnet test -c Debug TestXGBoostWrapper
+  - dotnet test -c Release TestXGBoostWrapper
+  - cd ..
