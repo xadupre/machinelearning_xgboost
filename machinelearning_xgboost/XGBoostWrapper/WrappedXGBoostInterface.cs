@@ -48,10 +48,12 @@ namespace Microsoft.ML.XGBoostWrappers
 
         // REVIEW xadupre: this will not work under linux.
 
-#if(!WIN32)
+#if(WIN32)
         private const string DllName = "xgboost.dll";
-#else
+#elif (UNIX)
         private const string DllName = "libxgboost.so";
+#else
+#error "Platform not recognized."
 #endif
 
         #region API ERROR

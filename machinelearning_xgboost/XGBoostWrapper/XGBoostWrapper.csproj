@@ -5,13 +5,23 @@
     <AssemblyName>Microsoft.ML.XGBoostWrapper</AssemblyName>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU' AND '$(OS)'=='Windows_NT'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;XGB_EXTENDED;NETSTANDARD2_0</DefineConstants>
+    <DefineConstants>TRACE;WIN32;DEBUG;XGB_EXTENDED;NETSTANDARD2_0</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>TRACE;XGB_EXTENDED;RELEASE;NETSTANDARD2_0</DefineConstants>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU' AND '$(OS)'=='Windows_NT'">
+    <DefineConstants>TRACE;WIN32;XGB_EXTENDED;RELEASE;NETSTANDARD2_0</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU' AND '$(OS)'=='Unix'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>TRACE;UNIX;DEBUG;XGB_EXTENDED;NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU' AND '$(OS)'=='Unix'">
+    <DefineConstants>TRACE;UNIX;XGB_EXTENDED;RELEASE;NETSTANDARD2_0</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   
