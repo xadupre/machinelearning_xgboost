@@ -67,3 +67,16 @@ test_script:
   - cmd /C dotnet test -c Debug TestXGBoostWrapper
   - cmd /C dotnet test -c Release TestXGBoostWrapper
   - cd ..
+
+after_test:
+  - if not exist dist mkdir dist
+  - if not exist dist\Release mkdir dist\Release
+  - if not exist dist\Debug mkdir dist\Debug
+  - copy machinelearning_xgboost\XGBoostWrapper\bin\Release\netstandard2.0\Microsoft.ML.XGBoostWrapper* dist\Release
+  - copy machinelearning_xgboost\XGBoostWrapper\bin\Debug\netstandard2.0\Microsoft.ML.XGBoostWrapper* dist\Debug
+  - copy machinelearning_xgboost\xgboost\lib\*.dll dist\Release
+  - copy machinelearning_xgboost\xgboost\lib\*.dll dist\Debug
+
+artifacts:
+  - path: dist
+    name: machinelearning_xgboost

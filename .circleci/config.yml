@@ -178,3 +178,18 @@ jobs:
             cd machinelearning_xgboost
             dotnet test -c Release TestXGBoostWrapper
             cd ..
+            
+      - run:
+          name: copy artifacts
+          command: |
+            mkdir -p test-reports/dist
+            mkdir -p test-reports/dist/Debug
+            mkdir -p test-reports/dist/Release
+            cp -r  machinelearning_xgboost/XGBoostWrapper/bin/Release/netstandard2.0/Microsoft.ML.XGBoostWrapper* test-reports/dist/Release
+            cp -r  machinelearning_xgboost/XGBoostWrapper/bin/Debug/netstandard2.0/Microsoft.ML.XGBoostWrapper* test-reports/dist/Debug
+            cp -r  machinelearning_xgboost/xgboost/lib/* test-reports/dist/Release
+            cp -r  machinelearning_xgboost/xgboost/lib/* test-reports/dist/Debug
+            
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
