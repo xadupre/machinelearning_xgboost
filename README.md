@@ -8,7 +8,7 @@ to enable one-off predictions available in this repository:
 [XGBoost](https://github.com/xadupre/xgboost).
 
 [![TravisCI](https://travis-ci.org/xadupre/machinelearning_xgboost.svg?branch=master)](https://travis-ci.org/xadupre/machinelearning_xgboost)
-[![Build status](https://ci.appveyor.com/api/projects/status/7m8x515b7ek3pddk?svg=true)](https://ci.appveyor.com/project/xadupre/machinelearning_xgboost)
+[![Build status](https://ci.appveyor.com/api/projects/status/7m8x515b7ek3pddk?svg=true)](https://ci.appveyor.com/project/xadupre/machinelearning-xgboost)
 [![CircleCI](https://circleci.com/gh/xadupre/machinelearning_xgboost.svg?style=svg)](https://circleci.com/gh/xadupre/machinelearning_xgboost)
 
 ## Build

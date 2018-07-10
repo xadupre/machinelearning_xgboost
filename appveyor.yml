@@ -55,8 +55,8 @@ test_script:
 after_test:
   - if not exist dist\Release mkdir dist\Release
   - if not exist dist\Debug mkdir dist\Debug
-  - copy machinelearning_xgboost\XGBoostWrapper\bin\Release\netstandard2.0\Microsoft.ML.XGBoostWrapper* dist\Release
-  - copy machinelearning_xgboost\XGBoostWrapper\bin\Debug\netstandard2.0\Microsoft.ML.XGBoostWrapper* dist\Debug
+  - copy machinelearning_xgboost\XGBoostWrapper\bin\Release\netstandard2.0\Scikit.ML.XGBoostWrapper* dist\Release
+  - copy machinelearning_xgboost\XGBoostWrapper\bin\Debug\netstandard2.0\Scikit.ML.XGBoostWrapper* dist\Debug
   - copy xgboost\lib\*.dll dist\Release
   - copy xgboost\lib\*.dll dist\Debug
 
