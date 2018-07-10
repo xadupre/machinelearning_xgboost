@@ -59,20 +59,12 @@ before_script:
   - cd xgboost
   - make -j4
   - cd ..
-  # ML.net
-  - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc
-  - gcc --version
-  - cd machinelearning
-  - bash build.sh -Release
-  - bash build.sh -Debug
   # Copy binaries.
-  - bash -c "dotnet publish Microsoft.ML.sln -o ../../dist/Debug -c Debug --self-contained" || true
-  - bash -c "dotnet publish Microsoft.ML.sln -o ../../dist/Release -c Release --self-contained" || true
-  - cd ..
-  - cp machinelearning/bin/x64.Debug/Native/*.so machinelearning/dist/Debug
-  - cp machinelearning/bin/x64.Release/Native/*.so machinelearning/dist/Release
-  - cp xgboost/lib/*.so machinelearning/dist/Release
-  - cp xgboost/lib/*.so machinelearning/dist/Debug
+  - md dist
+  - md dist/Debug
+  - md dist/Release
+  - cp xgboost/lib/*.so dist/Release
+  - cp xgboost/lib/*.so dist/Debug
   # Build 
   - cd machinelearning_xgboost
   - dotnet build -c Debug
@@ -80,10 +72,6 @@ before_script:
   - cd ..
 
 script:
-  # Run unit test for ML.net
-  - cd machinelearning
-  - bash build.sh -runTests -Release
-  - cd ..
   # Run unit tests for machinelearning_xgboost
   - cd machinelearning_xgboost
   - dotnet test -c Debug TestXGBoostWrapper

@@ -84,60 +84,13 @@ jobs:
             cd ..
 
       - run:
-          name: build machinelearning release
-          env:
-            DOTNET_CLI_TELEMETRY_OPTOUT:1
+          name: copy xgboost DLL
           command: |
-            export PATH=/home/circleci/repo/clang+llvm-6.0.0-x86_64-linux-gnu-debian8/bin:$PATH
-            cd machinelearning
-            bash build.sh -Release
-            cd ..
-
-      - run:
-          name: build machinelearning debug
-          env:
-            DOTNET_CLI_TELEMETRY_OPTOUT:1
-          command: |
-            export PATH=/home/circleci/repo/clang+llvm-6.0.0-x86_64-linux-gnu-debian8/bin:$PATH
-            cd machinelearning
-            bash build.sh -Debug
-            cd ..
-
-      - run:
-          name: run tests machinelearning release
-          env:
-            DOTNET_CLI_TELEMETRY_OPTOUT:1
-          command: |
-            export PATH=/home/circleci/repo/clang+llvm-6.0.0-x86_64-linux-gnu-debian8/bin:$PATH
-            export LANG=en_US.UTF-8
-            export DOTNET_CLI_TELEMETRY_OPTOUT=1
-            cd machinelearning
-            bash build.sh -runtests -Release
-            cd ..
-
-      - run:
-          name: publish machinelearning release
-          command: |
-            export PATH=/home/circleci/repo/clang+llvm-6.0.0-x86_64-linux-gnu-debian8/bin:$PATH
-            cd machinelearning
-            bash -c "dotnet publish Microsoft.ML.sln -o ../../dist/Release -c Release --self-contained" || true
-            cd ..
-
-      - run:
-          name: publish machinelearning debug
-          command: |
-            export PATH=/home/circleci/repo/clang+llvm-6.0.0-x86_64-linux-gnu-debian8/bin:$PATH
-            cd machinelearning
-            bash -c "dotnet publish Microsoft.ML.sln -o ../../dist/Debug -c Debug --self-contained" || true
-            cd ..
-
-      - run:
-          name: copy native DLL
-          command: |
-            cp machinelearning/bin/x64.Debug/Native/*.so machinelearning/dist/Debug
-            cp machinelearning/bin/x64.Release/Native/*.so machinelearning/dist/Release
-            cp xgboost/lib/*.so machinelearning/dist/Release
-            cp xgboost/lib/*.so machinelearning/dist/Debug
+            md dist
+            md dist/Release
+            md dist/Debug
+            cp xgboost/lib/*.so dist/Release
+            cp xgboost/lib/*.so dist/Debug
 
       - run:
           name: build machinelearning_xgboost debug
