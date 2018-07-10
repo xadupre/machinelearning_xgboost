@@ -86,9 +86,9 @@ jobs:
       - run:
           name: copy xgboost DLL
           command: |
-            mk dist
-            mk dist/Release
-            mk dist/Debug
+            mkdir dist
+            mkdir dist/Release
+            mkdir dist/Debug
             cp xgboost/lib/*.so dist/Release
             cp xgboost/lib/*.so dist/Debug
 

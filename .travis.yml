@@ -60,9 +60,9 @@ before_script:
   - make -j4
   - cd ..
   # Copy binaries.
-  - mk dist
-  - mk dist/Debug
-  - mk dist/Release
+  - mkdir dist
+  - mkdir dist/Debug
+  - mkdir dist/Release
   - cp xgboost/lib/*.so dist/Release
   - cp xgboost/lib/*.so dist/Debug
   # Build 
