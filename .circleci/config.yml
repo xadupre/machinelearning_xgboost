@@ -123,7 +123,7 @@ jobs:
             cd ..
 
       - run:
-          name: run tests machinelearningext release
+          name: run tests machinelearning_xgboost release
           env:
             DOTNET_CLI_TELEMETRY_OPTOUT:1
           command: |
