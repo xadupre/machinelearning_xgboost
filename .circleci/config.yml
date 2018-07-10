@@ -138,8 +138,8 @@ jobs:
             mkdir -p test-reports/dist
             mkdir -p test-reports/dist/Debug
             mkdir -p test-reports/dist/Release
-            cp -r  machinelearning_xgboost/XGBoostWrapper/bin/Release/netstandard2.0/Microsoft.ML.XGBoostWrapper* test-reports/dist/Release
-            cp -r  machinelearning_xgboost/XGBoostWrapper/bin/Debug/netstandard2.0/Microsoft.ML.XGBoostWrapper* test-reports/dist/Debug
+            cp -r  machinelearning_xgboost/XGBoostWrapper/bin/Release/netstandard2.0/Scikit.ML.XGBoostWrapper* test-reports/dist/Release
+            cp -r  machinelearning_xgboost/XGBoostWrapper/bin/Debug/netstandard2.0/Scikit.ML.XGBoostWrapper* test-reports/dist/Debug
             cp -r  xgboost/lib/* test-reports/dist/Release
             cp -r  xgboost/lib/* test-reports/dist/Debug
             
