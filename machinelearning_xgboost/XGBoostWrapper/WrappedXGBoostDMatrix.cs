@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.ML.Runtime;
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     // Implements the wrapper for XGBoost (https://github.com/dmlc/xgboost)
 

@@ -8,7 +8,7 @@ using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Training;
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     /// <summary>
     /// Base class for all training with XGBoost (binary classification, regression, ...).

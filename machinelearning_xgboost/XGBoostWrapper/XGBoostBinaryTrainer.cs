@@ -4,14 +4,16 @@ using Float = System.Single;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.ML.Runtime;
-using XGBoostBinaryTrainer = Microsoft.ML.XGBoostWrappers.XGBoostBinaryTrainer;
-using XGBoostArguments = Microsoft.ML.XGBoostWrappers.XGBoostArguments;
+using Microsoft.ML.Runtime.EntryPoints;
+using XGBoostBinaryTrainer = Scikit.ML.XGBoostWrapper.XGBoostBinaryTrainer;
+using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
 
 [assembly: LoadableClass(XGBoostBinaryTrainer.Summary, typeof(XGBoostBinaryTrainer), typeof(XGBoostArguments),
     new[] { typeof(SignatureBinaryClassifierTrainer), typeof(SignatureTrainer) },
     "eXGBoost Binary Classification", "eXGBoostBinary", "eXGBoost", "exgb", "xgb")]
 
-namespace Microsoft.ML.XGBoostWrappers
+
+namespace Scikit.ML.XGBoostWrapper
 {
     /// <summary>
     /// Trainer for a XGBoost binary classification.

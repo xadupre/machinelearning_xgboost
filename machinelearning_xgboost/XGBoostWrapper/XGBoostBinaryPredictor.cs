@@ -4,12 +4,12 @@ using Float = System.Single;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Model;
-using XGBoostBinaryPredictor = Microsoft.ML.XGBoostWrappers.XGBoostBinaryPredictor;
+using XGBoostBinaryPredictor = Scikit.ML.XGBoostWrapper.XGBoostBinaryPredictor;
 
 [assembly: LoadableClass(typeof(XGBoostBinaryPredictor), null, typeof(SignatureLoadModel),
     XGBoostBinaryPredictor.LoaderSignature)]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     /// <summary>
     /// XGBoost binary predictor.

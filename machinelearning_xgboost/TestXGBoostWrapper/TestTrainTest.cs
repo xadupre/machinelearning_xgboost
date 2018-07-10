@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using Microsoft.ML.Runtime.Api;
 using Microsoft.ML.Runtime.Data;
-using Microsoft.ML.XGBoostWrappers;
+using Scikit.ML.XGBoostWrapper;
 
 namespace TestXGBoostWrapper
 {

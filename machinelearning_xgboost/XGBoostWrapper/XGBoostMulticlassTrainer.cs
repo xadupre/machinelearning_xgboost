@@ -6,14 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
-using XGBoostMulticlassTrainer = Microsoft.ML.XGBoostWrappers.XGBoostMulticlassTrainer;
-using XGBoostArguments = Microsoft.ML.XGBoostWrappers.XGBoostArguments;
+using XGBoostMulticlassTrainer = Scikit.ML.XGBoostWrapper.XGBoostMulticlassTrainer;
+using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
 
 [assembly: LoadableClass(XGBoostMulticlassTrainer.Summary, typeof(XGBoostMulticlassTrainer), typeof(XGBoostArguments),
     new[] { typeof(SignatureMultiClassClassifierTrainer), typeof(SignatureTrainer) },
     "eXGBoost Multi-class Classifier", "eXGBoostMulticlass", "eXGBoostMC", "exgbmc", "xgbmc")]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     public sealed class XGBoostMulticlassTrainer : XGBoostTrainerBase<VBuffer<Float>, XGBoostMulticlassPredictor>
     {

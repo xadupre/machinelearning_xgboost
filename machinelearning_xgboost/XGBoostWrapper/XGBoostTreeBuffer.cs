@@ -7,7 +7,7 @@ using System;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     /// <summary>
     /// This class holds buffers. They are allocated by Microsoft.ML and given to modified XGBoost.

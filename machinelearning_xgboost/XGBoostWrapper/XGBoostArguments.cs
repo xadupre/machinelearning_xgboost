@@ -3,10 +3,11 @@
 using System.Collections.Generic;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
+using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Internal.Internallearn;
 
-using XGBoostArguments = Microsoft.ML.XGBoostWrappers.XGBoostArguments;
-using SignatureBooster = Microsoft.ML.XGBoostWrappers.SignatureBooster;
+using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
+using SignatureBooster = Scikit.ML.XGBoostWrapper.SignatureBooster;
 
 [assembly: LoadableClass(XGBoostArguments.TreeBooster.Summary, typeof(XGBoostArguments.TreeBooster), typeof(XGBoostArguments.TreeBooster.Arguments),
     typeof(SignatureBooster), "egbtree")]
@@ -15,7 +16,7 @@ using SignatureBooster = Microsoft.ML.XGBoostWrappers.SignatureBooster;
 [assembly: LoadableClass(XGBoostArguments.LinearBooster.Summary, typeof(XGBoostArguments.LinearBooster), typeof(XGBoostArguments.LinearBooster.Arguments),
     typeof(SignatureBooster), "egblinear")]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     public delegate void SignatureBooster();
 
@@ -26,8 +27,13 @@ namespace Microsoft.ML.XGBoostWrappers
     /// https://github.com/dmlc/xgboost/blob/master/doc/parameter.md for detailed explanation.
     /// About sweeping, see https://github.com/dmlc/xgboost/blob/master/doc/how_to/param_tuning.md.
     /// </summary>
-    public sealed class XGBoostArguments
+    public sealed class XGBoostArguments : LearnerInputBaseWithGroupId
     {
+        [TlcModule.ComponentKind("XGBoosterParameterFunction")]
+        public interface ISupportXGBoosterParameterFactory : IComponentFactory<IBoosterParameter>
+        {
+        }
+
         public interface IBoosterParameter
         {
             void UpdateParameters(Dictionary<string, string> res);
@@ -51,8 +57,11 @@ namespace Microsoft.ML.XGBoostWrappers
         public sealed class TreeBooster : BoosterParameter<TreeBooster.Arguments>
         {
             public const string Summary = "Parameters for TreeBooster, boost=egbtree{...}.";
+            public const string Name = "xgbdt";
+            public const string FriendlyName = "Tree XGBooster";
 
-            public class Arguments
+            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Traditional Gradient XGBoosting Decision Tree.")]
+            public class Arguments : ISupportXGBoosterParameterFactory
             {
                 [Argument(ArgumentType.AtMostOnce,
                     HelpText = "Step size shrinkage used in update to prevents overfitting. After each boosting step, we can directly " +
@@ -134,6 +143,8 @@ namespace Microsoft.ML.XGBoostWrappers
                     "If the value is 0, the parameter will be estimated as suggested in " +
                     "https://github.com/dmlc/xgboost/blob/master/demo/guide-python/cross_validation.py#L31 for a binary classification problem.")]
                 public double scalePosWeight = 1;
+
+                public virtual IBoosterParameter CreateComponent(IHostEnvironment env) => new TreeBooster(this);
             }
 
             public TreeBooster(Arguments args)
@@ -173,7 +184,10 @@ namespace Microsoft.ML.XGBoostWrappers
         public sealed class DartBooster : BoosterParameter<DartBooster.Arguments>
         {
             public const string Summary = "Parameters for DartBooster (includes parameters for TreeBooster), boost=edart{...}.";
+            public const string Name = "xgdart";
+            public const string FriendlyName = "Tree Dropout Tree XGBooster";
 
+            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Dropouts meet Multiple Additive Regresion Trees (XGBoost).")]
             public class Arguments : TreeBooster.Arguments
             {
                 public enum SampleType
@@ -222,10 +236,13 @@ namespace Microsoft.ML.XGBoostWrappers
             }
         }
 
-        public class LinearBooster : BoosterParameter<LinearBooster.Arguments>
+        public sealed class LinearBooster : BoosterParameter<LinearBooster.Arguments>
         {
             public const string Summary = "Parameters for LinearBooster, boost=elinear{...}.";
+            public const string Name = "xglinear";
+            public const string FriendlyName = Name;
 
+            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Linear training (XGBoost).")]
             public class Arguments
             {
                 [Argument(ArgumentType.AtMostOnce,

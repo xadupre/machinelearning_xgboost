@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     /// <summary>
     /// A Booster of XGBoost.

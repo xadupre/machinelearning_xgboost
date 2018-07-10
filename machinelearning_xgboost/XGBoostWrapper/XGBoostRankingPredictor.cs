@@ -4,12 +4,12 @@ using Float = System.Single;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Model;
-using XGBoostRankingPredictor = Microsoft.ML.XGBoostWrappers.XGBoostRankingPredictor;
+using XGBoostRankingPredictor = Scikit.ML.XGBoostWrapper.XGBoostRankingPredictor;
 
 [assembly: LoadableClass(typeof(XGBoostRankingPredictor), null, typeof(SignatureLoadModel),
     XGBoostRankingPredictor.LoaderSignature)]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     public class XGBoostRankingPredictor : XGBoostPredictorBase<Float>
     {

@@ -4,14 +4,14 @@ using Float = System.Single;
 using System.Collections.Generic;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
-using XGBoostRankingTrainer = Microsoft.ML.XGBoostWrappers.XGBoostRankingTrainer;
-using XGBoostArguments = Microsoft.ML.XGBoostWrappers.XGBoostArguments;
+using XGBoostRankingTrainer = Scikit.ML.XGBoostWrapper.XGBoostRankingTrainer;
+using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
 
 [assembly: LoadableClass(XGBoostRankingTrainer.Summary, typeof(XGBoostRankingTrainer), typeof(XGBoostArguments),
     new[] { typeof(SignatureRankerTrainer), typeof(SignatureTrainer) },
     "eXGBoost Ranking", "eXGBoostRanking", "eXGBoostRank", "exgbrk", "xgbrk")]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     public sealed class XGBoostRankingTrainer : XGBoostTrainerBase<Float, XGBoostRankingPredictor>
     {

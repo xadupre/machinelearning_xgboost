@@ -3,14 +3,14 @@
 using Float = System.Single;
 using System.Collections.Generic;
 using Microsoft.ML.Runtime;
-using XGBoostRegressorTrainer = Microsoft.ML.XGBoostWrappers.XGBoostRegressorTrainer;
-using XGBoostArguments = Microsoft.ML.XGBoostWrappers.XGBoostArguments;
+using XGBoostRegressorTrainer = Scikit.ML.XGBoostWrapper.XGBoostRegressorTrainer;
+using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
 
 [assembly: LoadableClass(XGBoostRegressorTrainer.Summary, typeof(XGBoostRegressorTrainer), typeof(XGBoostArguments),
     new[] { typeof(SignatureRegressorTrainer), typeof(SignatureTrainer) },
     "eXGBoost Regressor", "eXGBoostRegression", "eXGBoostR", "exgbr", "xgbr")]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     public sealed class XGBoostRegressorTrainer : XGBoostTrainerBase<Float, XGBoostRegressionPredictor>
     {

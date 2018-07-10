@@ -6,7 +6,7 @@ using System.Linq;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     /// <summary>
     /// Wraps <see cref="XGBoost"/> into Microsoft.ML <see cref="ISchemaBoundRowMapper"/> to produce prediction for given input.

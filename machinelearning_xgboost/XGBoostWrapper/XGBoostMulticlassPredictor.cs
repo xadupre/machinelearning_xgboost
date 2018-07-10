@@ -7,12 +7,12 @@ using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
-using XGBoostMulticlassPredictor = Microsoft.ML.XGBoostWrappers.XGBoostMulticlassPredictor;
+using XGBoostMulticlassPredictor = Scikit.ML.XGBoostWrapper.XGBoostMulticlassPredictor;
 
 [assembly: LoadableClass(typeof(XGBoostMulticlassPredictor), null, typeof(SignatureLoadModel),
     XGBoostMulticlassPredictor.LoaderSignature)]
 
-namespace Microsoft.ML.XGBoostWrappers
+namespace Scikit.ML.XGBoostWrapper
 {
     public class XGBoostMulticlassPredictor : XGBoostPredictorBase<VBuffer<Float>>
     {

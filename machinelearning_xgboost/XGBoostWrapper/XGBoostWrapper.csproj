@@ -5,6 +5,7 @@
     <AssemblyName>Scikit.ML.XGBoostWrapper</AssemblyName>
     <RootNamespace>Scikit.ML.XGBoostWrapper</RootNamespace>
     <Version>0.3.0</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU' AND '$(OS)'=='Windows_NT'">
