@@ -55,6 +55,10 @@ namespace Scikit.ML.XGBoostWrapper
         }
     }
 
+    /// <summary>
+    /// This is only executed if this DLL and its dependencies is placed
+    /// beside the other DLL from the nuget package: Microsoft.ML.dll, Microsoft.ML.Core.dll, ...
+    /// </summary>
     public static class EntryPointXGBoostBinary
     {
         public static Scikit.ML.XGBoostWrapper.XGBoostBinary.Output Add(this Microsoft.ML.Runtime.Experiment exp, Scikit.ML.XGBoostWrapper.XGBoostBinary input)

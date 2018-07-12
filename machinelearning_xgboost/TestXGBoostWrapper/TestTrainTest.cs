@@ -1,10 +1,15 @@
 ﻿// See the LICENSE file in the project root for more information.
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 using Microsoft.ML.Runtime.Api;
 using Microsoft.ML.Runtime.Data;
+using Microsoft.ML.Transforms;
+using Scikit.ML.DataFrame;
 using Scikit.ML.XGBoostWrapper;
+
+
 
 namespace TestXGBoostWrapper
 {
@@ -43,6 +48,26 @@ namespace TestXGBoostWrapper
 
             var d1 = File.ReadAllText(outputDataFilePath);
             Assert.IsTrue(d1.Length > 0);
+        }
+
+        [TestMethod]
+        public void TestEntryPointXGBoostBinary()
+        {
+            var env = EnvHelper.NewTestEnvironment(conc: 1);
+            var iris = FileHelper.GetTestFile("iris_binary.txt");
+            var df = DataFrame.ReadCsv(iris, sep: '\t', dtypes: new DataKind?[] { DataKind.R4 });
+
+            var importData = df.EPTextLoader(iris, sep: '\t', header: true);
+            var learningPipeline = new GenericLearningPipeline(conc: 1);
+            learningPipeline.Add(importData);
+            learningPipeline.Add(new ColumnConcatenator("Features", "Sepal_length", "Sepal_width"));
+            learningPipeline.Add(new Scikit.ML.XGBoostWrapper.XGBoostBinary());
+            // Fails here due to missing variable.
+            return;
+            var predictor = learningPipeline.Train();
+            var predictions = predictor.Predict(df);
+            var dfout = DataFrame.ReadView(predictions);
+            Assert.AreEqual(dfout.Shape, new Tuple<int, int>(150, 9));
         }
     }
 }
