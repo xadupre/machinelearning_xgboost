@@ -6,8 +6,10 @@ using System.Collections.Generic;
 using System.Text;
 using Microsoft.ML.Runtime.Command;
 using Microsoft.ML.Runtime.Api;
-
+using Microsoft.ML.Runtime;
+using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Tools;
+using Scikit.ML.XGBoostWrapper;
 
 
 namespace TestXGBoostWrapper
@@ -29,8 +31,13 @@ namespace TestXGBoostWrapper
                 Assert.IsFalse(std.StdOut.ToLower().Contains("usage"));
             }
             var text = File.ReadAllText(basePath);
-            // TODO: Not working.
-            // Assert.IsTrue(text.ToLower().Contains("xgb"));
+            // TODO: this tests fails because when ML.net is used
+            // as a nuget, buget binaries and custom binaries
+            // are not in the same folder. The command looks into
+            // its folder and fetches every DLL to look into exposed
+            // learner and transforms. XGBoostWrapper is in another folder and does not
+            // appear it.
+            //Assert.IsTrue(text.ToLower().Contains("xgb"));
         }
     }
 }

@@ -1,30 +1,43 @@
 ﻿// See the LICENSE file in the project root for more information.
 
 using System;
-using System.Linq;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.ML;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.EntryPoints;
-using Microsoft.ML.Runtime.CommandLine;
 using EntryPointDefXGBoostBinaryTrainer = Scikit.ML.XGBoostWrapper.EntryPointDefXGBoostBinaryTrainer;
+using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
 
 [assembly: LoadableClass(typeof(void), typeof(EntryPointDefXGBoostBinaryTrainer), null,
     typeof(SignatureEntryPointModule), EntryPointDefXGBoostBinaryTrainer.EntryPointName)]
 
+[assembly: EntryPointModule(typeof(XGBoostArguments.TreeBooster.Arguments))]
+[assembly: EntryPointModule(typeof(XGBoostArguments.DartBooster.Arguments))]
+[assembly: EntryPointModule(typeof(XGBoostArguments.LinearBooster.Arguments))]
 
 namespace Scikit.ML.XGBoostWrapper
 {
+    /// <summary>
+    /// Creates a similar class to ComponentKind in ML.net
+    /// unavailable here due to internal members.
+    /// </summary>
+    public abstract class ComponentKindXGBoost
+    {
+        /*internal*/ public ComponentKindXGBoost() { }
+
+        [JsonIgnore]
+        /*internal*/ public abstract string ComponentName { get; }
+    }
+
     #region binary
 
     public static partial class EntryPointDefXGBoostBinaryTrainer
     {
-        public const string EntryPointName = "XGBoostBinaryClassifier";
+        public const string EntryPointName = "XGBoostBinary";
 
         [TlcModule.EntryPoint(
-            Name = "Scikit.ML." + EntryPointName,
+            Name = "ScikitML." + EntryPointName,
             Desc = XGBoostBinaryTrainer.Summary,
             UserName = EntryPointName)]
         public static CommonOutputs.BinaryClassificationOutput TrainBinary(IHostEnvironment env, XGBoostArguments input)
@@ -37,29 +50,30 @@ namespace Scikit.ML.XGBoostWrapper
             return LearnerEntryPointsUtils.Train<XGBoostArguments,
                                            CommonOutputs.BinaryClassificationOutput>(host, input,
                 () => new XGBoostBinaryTrainer(host, input),
-                getLabel: () => LearnerEntryPointsUtils.FindColumn(host, input.TrainingData.Schema, input.LabelColumn));
+                getLabel: () => LearnerEntryPointsUtils.FindColumn(host, input.TrainingData.Schema, input.LabelColumn),
+                getWeight: () => LearnerEntryPointsUtils.FindColumn(host, input.TrainingData.Schema, input.WeightColumn));
         }
     }
 
     public static class EntryPointXGBoostBinary
     {
-        public static XGBoostBinaryClassifier.Output Add(this Microsoft.ML.Runtime.Experiment exp, XGBoostBinaryClassifier input)
+        public static Scikit.ML.XGBoostWrapper.XGBoostBinary.Output Add(this Microsoft.ML.Runtime.Experiment exp, Scikit.ML.XGBoostWrapper.XGBoostBinary input)
         {
-            var output = new XGBoostBinaryClassifier.Output();
+            var output = new Scikit.ML.XGBoostWrapper.XGBoostBinary.Output();
             exp.Add(input, output);
             return output;
         }
 
-        public static void Add(this Microsoft.ML.Runtime.Experiment exp, XGBoostBinaryClassifier input, XGBoostBinaryClassifier.Output output)
+        public static void Add(this Microsoft.ML.Runtime.Experiment exp, Scikit.ML.XGBoostWrapper.XGBoostBinary input, Scikit.ML.XGBoostWrapper.XGBoostBinary.Output output)
         {
             // TODO: Internal API not available.
-            // _jsonNodes.Add(Serialize("Scikit.XGBoostBinary", input, output));
+            // _jsonNodes.Add(Serialize("ScikitML.XGBoostBinary", input, output));
             // It could be replaced by:
-            // exp.AddSerialize("Scikit.XGBoostBinary", input, output);
+            // exp.AddSerialize("ScikitML.XGBoostBinary", input, output);
         }
     }
 
-    public enum XGBoostArgumentsEvalMetricType
+    public enum XGBoostArgumentsEvalMetric
     {
         DefaultMetric = 0,
         Rmse = 1,
@@ -70,145 +84,311 @@ namespace Scikit.ML.XGBoostWrapper
         Mlogloss = 6,
         Auc = 7,
         Ndcg = 8,
-        Map = 9
+        Map = 9,
+        NdcgAT1 = 10,
+        NdcgAT3 = 11,
+        NdcgAT5 = 12,
+        MapAT1 = 13,
+        MapAT3 = 14,
+        MapAT5 = 15
     }
 
+    public abstract class BoosterParameterFunction : ComponentKindXGBoost { }
+
+    public enum XGBoostArgumentsDartBoosterArgumentsSampleType
+    {
+        Uniform = 0,
+        Weighted = 1
+    }
+
+    public enum XGBoostArgumentsDartBoosterArgumentsNormalizeType
+    {
+        Tree = 0,
+        Forest = 1
+    }
+
+    public enum XGBoostArgumentsTreeBoosterArgumentsTreeMethodEnum
+    {
+        Auto = 0,
+        Approx = 1,
+        Exact = 2
+    }
 
     /// <summary>
-    /// Train a LightGBM binary classification model.
+    /// Dropouts meet Multiple Additive Regresion Trees (XGBoost).
     /// </summary>
-    /// <remarks>Light GBM is an open source implementation of boosted trees.
-    /// <a href='https://github.com/Microsoft/LightGBM/wiki'>GitHub: LightGBM</a></remarks>
-    public sealed partial class XGBoostBinaryClassifier : 
-                Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInputWithGroupId, 
-        Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInputWithWeight, 
-        Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInputWithLabel, 
-        Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInput, 
-        Microsoft.ML.ILearningPipelineItem
+    public sealed class EdartBoosterParameterFunction : BoosterParameterFunction
     {
-
-
         /// <summary>
-        /// Number of iterations.
+        /// Type of sampling algorithm
         /// </summary>
-        [TlcModule.SweepableDiscreteParamAttribute("NumBoostRound", new object[] { 10, 20, 50, 100, 150, 200 })]
-        public int NumBoostRound { get; set; } = 100;
+        [JsonProperty("sampleType")]
+        public XGBoostArgumentsDartBoosterArgumentsSampleType SampleType { get; set; } = XGBoostArgumentsDartBoosterArgumentsSampleType.Uniform;
 
         /// <summary>
-        /// Shrinkage rate for trees, used to prevent over-fitting. Range: (0,1].
+        /// Type of normalization algorithm
         /// </summary>
-        [TlcModule.SweepableFloatParamAttribute("LearningRate", 0.025f, 0.4f, isLogScale: true)]
-        public double? LearningRate { get; set; }
+        [JsonProperty("normalizeType")]
+        public XGBoostArgumentsDartBoosterArgumentsNormalizeType NormalizeType { get; set; } = XGBoostArgumentsDartBoosterArgumentsNormalizeType.Tree;
 
         /// <summary>
-        /// Maximum leaves for trees.
+        /// Dropout rate.  Range: [0, 1]
         /// </summary>
-        [TlcModule.SweepableLongParamAttribute("NumLeaves", 2, 128, stepSize: 4, isLogScale: true)]
-        public int? NumLeaves { get; set; }
+        [JsonProperty("rateDrop")]
+        public double RateDrop { get; set; }
 
         /// <summary>
-        /// Minimum number of instances needed in a child.
+        /// Probability of skip dropout.  Range: [0, 1].
         /// </summary>
-        [TlcModule.SweepableDiscreteParamAttribute("MinDataPerLeaf", new object[] { 1, 10, 20, 50 })]
-        public int? MinDataPerLeaf { get; set; }
+        [JsonProperty("skipDrop")]
+        public double SkipDrop { get; set; }
 
         /// <summary>
-        /// Max number of bucket bin for features.
+        /// Step size shrinkage used in update to prevents overfitting. After each boosting step, we can directly get the weights of new features and eta actually shrinks the feature weights to make the boosting process more conservative. Range: [0,1].
         /// </summary>
-        public int MaxBin { get; set; } = 255;
+        [JsonProperty("learningRate")]
+        public double LearningRate { get; set; } = 0.3d;
 
         /// <summary>
-        /// Which booster to use, can be gbtree, gblinear or dart. gbtree and dart use tree based model while gblinear uses linear function.
+        /// Minimum loss reduction required to make a further partition on a leaf node of the tree. the larger, the more conservative the algorithm will be. Range: [0,inf[.
+        /// </summary>
+        [JsonProperty("gamma")]
+        public double Gamma { get; set; }
+
+        /// <summary>
+        /// Maximum depth of a tree, increase this value will make model more complex / likely to be overfitting. Range: [1,inf[.
+        /// </summary>
+        [JsonProperty("maxDepth")]
+        public int MaxDepth { get; set; } = 6;
+
+        /// <summary>
+        /// Minimum sum of instance weight(hessian) needed in a child. If the tree partition step results in a leaf node with the sum of instance weight less than min_child_weight, then the building process will give up further partitioning. In linear regression mode, this simply corresponds to minimum number of instances needed to be in each node. The larger, the more conservative the algorithm will be. Range: [0,inf[.
+        /// </summary>
+        [JsonProperty("minChildWeight")]
+        public int MinChildWeight { get; set; } = 1;
+
+        /// <summary>
+        /// Maximum delta step we allow each tree's weight estimation to be. If the value is set to 0, it means there is no constraint. If it is set to a positive value, it can help making the update step more conservative. Usually this parameter is not needed, but it might help in logistic regression when class is extremely imbalanced. Set it to value of 1-10 might help control the update. Range: [0,inf[.
+        /// </summary>
+        [JsonProperty("maxDeltaStep")]
+        public double MaxDeltaStep { get; set; }
+
+        /// <summary>
+        /// Subsample ratio of the training instance. Setting it to 0.5 means that XGBoost randomly collected half of the data instances to grow trees and this will prevent overfitting. Range: (0,1].
+        /// </summary>
+        [JsonProperty("subSample")]
+        public double SubSample { get; set; } = 1d;
+
+        /// <summary>
+        /// Subsample ratio of columns when constructing each tree. Range: (0,1].
+        /// </summary>
+        [JsonProperty("colSampleByTree")]
+        public double ColSampleByTree { get; set; } = 1d;
+
+        /// <summary>
+        /// Subsample ratio of columns for each split, in each level. Range: (0,1[.
+        /// </summary>
+        [JsonProperty("colSampleByLevel")]
+        public double ColSampleByLevel { get; set; } = 1d;
+
+        /// <summary>
+        /// L1 regularization term on weights, increase this value will make model more conservative.
+        /// </summary>
+        [JsonProperty("alpha")]
+        public double Alpha { get; set; }
+
+        /// <summary>
+        /// L2 regularization term on weights, increase this value will make model more conservative.
+        /// </summary>
+        [JsonProperty("lambda")]
+        public double Lambda { get; set; } = 1d;
+
+        /// <summary>
+        /// The tree construction algorithm used in XGBoost(see description in the reference paper), Distributed and external memory version only support approximate algorithm. Choices: {'auto', 'exact', 'approx'} 'auto': Use heuristic to choose faster one. For small to medium dataset, exact greedy will be used. For very large-dataset, approximate algorithm will be choosed. Because old behavior is always use exact greedy in single machine, user will get a message when approximate algorithm is choosed to notify this choice.  'exact': Exact greedy algorithm. 'approx': Approximate greedy algorithm using sketching and histogram.
+        /// </summary>
+        [JsonProperty("treeMethod")]
+        public XGBoostArgumentsTreeBoosterArgumentsTreeMethodEnum TreeMethod { get; set; } = XGBoostArgumentsTreeBoosterArgumentsTreeMethodEnum.Auto;
+
+        /// <summary>
+        /// This is only used for approximate greedy algorithm. This roughly translated into O(1 / sketch_eps) number of bins. Compared to directly select number of bins, this comes with theoretical ganrantee with sketch accuracy. Usuaully user do not have to tune this. but consider set to lower number for more accurate enumeration. Range: (0,1).
+        /// </summary>
+        [JsonProperty("sketchEps")]
+        public double SketchEps { get; set; } = 0.03d;
+
+        /// <summary>
+        /// Control the balance of positive and negative weights, useful for unbalanced classes. A typical value to consider: sum(negative cases) / sum(positive cases). If the value is 0, the parameter will be estimated as suggested in https://github.com/dmlc/xgboost/blob/master/demo/guide-python/cross_validation.py#L31 for a binary classification problem.
+        /// </summary>
+        [JsonProperty("scalePosWeight")]
+        public double ScalePosWeight { get; set; } = 1d;
+
+        public override string ComponentName => "edart";
+    }
+
+    /// <summary>
+    /// Traditional Gradient Boosting Decision Tree.
+    /// </summary>
+    public sealed class EgbtreeBoosterParameterFunction : BoosterParameterFunction
+    {
+        /// <summary>
+        /// Step size shrinkage used in update to prevents overfitting. After each boosting step, we can directly get the weights of new features and eta actually shrinks the feature weights to make the boosting process more conservative. Range: [0,1].
+        /// </summary>
+        [JsonProperty("learningRate")]
+        public double LearningRate { get; set; } = 0.3d;
+
+        /// <summary>
+        /// Minimum loss reduction required to make a further partition on a leaf node of the tree. the larger, the more conservative the algorithm will be. Range: [0,inf[.
+        /// </summary>
+        [JsonProperty("gamma")]
+        public double Gamma { get; set; }
+
+        /// <summary>
+        /// Maximum depth of a tree, increase this value will make model more complex / likely to be overfitting. Range: [1,inf[.
+        /// </summary>
+        [JsonProperty("maxDepth")]
+        public int MaxDepth { get; set; } = 6;
+
+        /// <summary>
+        /// Minimum sum of instance weight(hessian) needed in a child. If the tree partition step results in a leaf node with the sum of instance weight less than min_child_weight, then the building process will give up further partitioning. In linear regression mode, this simply corresponds to minimum number of instances needed to be in each node. The larger, the more conservative the algorithm will be. Range: [0,inf[.
+        /// </summary>
+        [JsonProperty("minChildWeight")]
+        public int MinChildWeight { get; set; } = 1;
+
+        /// <summary>
+        /// Maximum delta step we allow each tree's weight estimation to be. If the value is set to 0, it means there is no constraint. If it is set to a positive value, it can help making the update step more conservative. Usually this parameter is not needed, but it might help in logistic regression when class is extremely imbalanced. Set it to value of 1-10 might help control the update. Range: [0,inf[.
+        /// </summary>
+        [JsonProperty("maxDeltaStep")]
+        public double MaxDeltaStep { get; set; }
+
+        /// <summary>
+        /// Subsample ratio of the training instance. Setting it to 0.5 means that XGBoost randomly collected half of the data instances to grow trees and this will prevent overfitting. Range: (0,1].
+        /// </summary>
+        [JsonProperty("subSample")]
+        public double SubSample { get; set; } = 1d;
+
+        /// <summary>
+        /// Subsample ratio of columns when constructing each tree. Range: (0,1].
+        /// </summary>
+        [JsonProperty("colSampleByTree")]
+        public double ColSampleByTree { get; set; } = 1d;
+
+        /// <summary>
+        /// Subsample ratio of columns for each split, in each level. Range: (0,1[.
+        /// </summary>
+        [JsonProperty("colSampleByLevel")]
+        public double ColSampleByLevel { get; set; } = 1d;
+
+        /// <summary>
+        /// L1 regularization term on weights, increase this value will make model more conservative.
+        /// </summary>
+        [JsonProperty("alpha")]
+        public double Alpha { get; set; }
+
+        /// <summary>
+        /// L2 regularization term on weights, increase this value will make model more conservative.
+        /// </summary>
+        [JsonProperty("lambda")]
+        public double Lambda { get; set; } = 1d;
+
+        /// <summary>
+        /// The tree construction algorithm used in XGBoost(see description in the reference paper), Distributed and external memory version only support approximate algorithm. Choices: {'auto', 'exact', 'approx'} 'auto': Use heuristic to choose faster one. For small to medium dataset, exact greedy will be used. For very large-dataset, approximate algorithm will be choosed. Because old behavior is always use exact greedy in single machine, user will get a message when approximate algorithm is choosed to notify this choice.  'exact': Exact greedy algorithm. 'approx': Approximate greedy algorithm using sketching and histogram.
+        /// </summary>
+        [JsonProperty("treeMethod")]
+        public XGBoostArgumentsTreeBoosterArgumentsTreeMethodEnum TreeMethod { get; set; } = XGBoostArgumentsTreeBoosterArgumentsTreeMethodEnum.Auto;
+
+        /// <summary>
+        /// This is only used for approximate greedy algorithm. This roughly translated into O(1 / sketch_eps) number of bins. Compared to directly select number of bins, this comes with theoretical ganrantee with sketch accuracy. Usuaully user do not have to tune this. but consider set to lower number for more accurate enumeration. Range: (0,1).
+        /// </summary>
+        [JsonProperty("sketchEps")]
+        public double SketchEps { get; set; } = 0.03d;
+
+        /// <summary>
+        /// Control the balance of positive and negative weights, useful for unbalanced classes. A typical value to consider: sum(negative cases) / sum(positive cases). If the value is 0, the parameter will be estimated as suggested in https://github.com/dmlc/xgboost/blob/master/demo/guide-python/cross_validation.py#L31 for a binary classification problem.
+        /// </summary>
+        [JsonProperty("scalePosWeight")]
+        public double ScalePosWeight { get; set; } = 1d;
+
+        public override string ComponentName => "egbtree";
+    }
+
+    /// <summary>
+    /// Linear based booster.
+    /// </summary>
+    public sealed class ElinearBoosterParameterFunction : BoosterParameterFunction
+    {
+        /// <summary>
+        /// Regularization term on bias, default 0 (no L1 reg on bias because it is not important
+        /// </summary>
+        [JsonProperty("lambdaBias")]
+        public double LambdaBias { get; set; } = 1d;
+
+        /// <summary>
+        /// L1 regularization term on weights, increase this value will make model more conservative.
+        /// </summary>
+        [JsonProperty("alpha")]
+        public double Alpha { get; set; }
+
+        /// <summary>
+        /// L2 regularization term on weights, increase this value will make model more conservative.
+        /// </summary>
+        [JsonProperty("lambda")]
+        public double Lambda { get; set; }
+
+        public override string ComponentName => "elinear";
+    }
+
+    /// <summary>
+    /// XGBoost Binary Classifier: https://github.com/dmlc/xgboost.
+    /// </summary>
+    public sealed partial class XGBoostBinary : Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInputWithGroupId, Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInputWithWeight, Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInputWithLabel, Microsoft.ML.Runtime.EntryPoints.CommonInputs.ITrainerInput, Microsoft.ML.ILearningPipelineItem
+    {
+        /// <summary>
+        /// Number of iterations
+        /// </summary>
+        [JsonProperty("numBoostRound")]
+        public int NumBoostRound { get; set; } = 10;
+
+        /// <summary>
+        /// Which booster to use, can be egbtree, gblinear or dart. egbtree and dart use tree based model while gblinear uses linear function.
         /// </summary>
         [JsonConverter(typeof(ComponentSerializer))]
-        public BoosterParameterFunction Booster { get; set; } = new GbdtBoosterParameterFunction();
+        [JsonProperty("booster")]
+        public BoosterParameterFunction Booster { get; set; } = new EgbtreeBoosterParameterFunction();
 
         /// <summary>
         /// Verbose
         /// </summary>
+        [JsonProperty("verboseEval")]
         public bool VerboseEval { get; set; } = false;
 
         /// <summary>
         /// Printing running messages.
         /// </summary>
+        [JsonProperty("silent")]
         public bool Silent { get; set; } = true;
 
         /// <summary>
-        /// Number of parallel threads used to run LightGBM.
+        /// Number of parallel threads used to run xgboost.
         /// </summary>
-        public int? NThread { get; set; }
+        [JsonProperty("nthread")]
+        public int? Nthread { get; set; }
 
         /// <summary>
-        /// Evaluation metrics.
+        /// Random number seed.
         /// </summary>
-        public XGBoostArgumentsEvalMetricType EvalMetric { get; set; } = XGBoostArgumentsEvalMetricType.DefaultMetric;
+        [JsonProperty("seed")]
+        public double Seed { get; set; }
 
         /// <summary>
-        /// Use softmax loss for the multi classification.
+        /// Evaluation metrics for validation data, a default metric will be assigned according to objective (rmse for regression, and error for classification, mean average precision for ranking). Available choices: rmse, mae, logloss, error, merror, mlogloss, auc, ndcg, map, ndcg, gammaDeviance
         /// </summary>
-        [TlcModule.SweepableDiscreteParamAttribute("UseSoftmax", new object[] { true, false })]
-        public bool? UseSoftmax { get; set; }
+        [JsonProperty("evalMetric")]
+        public XGBoostArgumentsEvalMetric EvalMetric { get; set; } = XGBoostArgumentsEvalMetric.DefaultMetric;
 
         /// <summary>
-        /// Rounds of early stopping, 0 will disable it.
+        /// Saves internal XGBoost DMatrix as binary format for debugging puropose
         /// </summary>
-        public int EarlyStoppingRound { get; set; }
-
-        /// <summary>
-        /// Comma seperated list of gains associated to each relevance label.
-        /// </summary>
-        public string CustomGains { get; set; } = "0,3,7,15,31,63,127,255,511,1023,2047,4095";
-
-        /// <summary>
-        /// Number of entries in a batch when loading data.
-        /// </summary>
-        public int BatchSize { get; set; } = 1048576;
-
-        /// <summary>
-        /// Enable categorical split or not.
-        /// </summary>
-        [TlcModule.SweepableDiscreteParamAttribute("UseCat", new object[] { true, false })]
-        public bool? UseCat { get; set; }
-
-        /// <summary>
-        /// Enable missing value auto infer or not.
-        /// </summary>
-        [TlcModule.SweepableDiscreteParamAttribute("UseMissing", new object[] { true, false })]
-        public bool UseMissing { get; set; } = false;
-
-        /// <summary>
-        /// Min number of instances per categorical group.
-        /// </summary>
-        [TlcModule.Range(Inf = 0, Max = 2147483647)]
-        [TlcModule.SweepableDiscreteParamAttribute("MinDataPerGroup", new object[] { 10, 50, 100, 200 })]
-        public int MinDataPerGroup { get; set; } = 100;
-
-        /// <summary>
-        /// Max number of categorical thresholds.
-        /// </summary>
-        [TlcModule.Range(Inf = 0, Max = 2147483647)]
-        [TlcModule.SweepableDiscreteParamAttribute("MaxCatThreshold", new object[] { 8, 16, 32, 64 })]
-        public int MaxCatThreshold { get; set; } = 32;
-
-        /// <summary>
-        /// Lapalace smooth term in categorical feature spilt. Avoid the bias of small categories.
-        /// </summary>
-        [TlcModule.Range(Min = 0d)]
-        [TlcModule.SweepableDiscreteParamAttribute("CatSmooth", new object[] { 1, 10, 20 })]
-        public double CatSmooth { get; set; } = 10d;
-
-        /// <summary>
-        /// L2 Regularization for categorical split.
-        /// </summary>
-        [TlcModule.Range(Min = 0d)]
-        [TlcModule.SweepableDiscreteParamAttribute("CatL2", new object[] { 0.1f, 0.5f, 1, 5, 10 })]
-        public double CatL2 { get; set; } = 10d;
-
-        /// <summary>
-        /// Parallel LightGBM Learning Algorithm
-        /// </summary>
-        [JsonConverter(typeof(ComponentSerializer))]
-        public ParallelLightGBM ParallelTrainer { get; set; } = new SingleParallelLightGBM();
+        [JsonProperty("saveXGBoostDMatrixAsBinary")]
+        public string SaveXGBoostDMatrixAsBinary { get; set; }
 
         /// <summary>
         /// Column to use for example groupId
@@ -238,12 +418,12 @@ namespace Scikit.ML.XGBoostWrapper
         /// <summary>
         /// Normalize option for the feature column
         /// </summary>
-        public Microsoft.ML.Models.NormalizeOption NormalizeFeatures { get; set; } = Microsoft.ML.Models.NormalizeOption.Auto;
+        public NormalizeOption NormalizeFeatures { get; set; } = NormalizeOption.Auto;
 
         /// <summary>
         /// Whether learner should cache input training data
         /// </summary>
-        public Microsoft.ML.Models.CachingOptions Caching { get; set; } = Microsoft.ML.Models.CachingOptions.Auto;
+        public CachingOptions Caching { get; set; } = CachingOptions.Auto;
 
 
         public sealed class Output : Microsoft.ML.Runtime.EntryPoints.CommonOutputs.IBinaryClassificationOutput, Microsoft.ML.Runtime.EntryPoints.CommonOutputs.ITrainerOutput
@@ -262,18 +442,18 @@ namespace Scikit.ML.XGBoostWrapper
             {
                 if (!(previousStep is ILearningPipelineDataStep dataStep))
                 {
-                    throw new InvalidOperationException($"{ nameof(XGBoostBinaryClassifier)} only supports an { nameof(ILearningPipelineDataStep)} as an input.");
+                    throw new InvalidOperationException($"{ nameof(XGBoostBinary)} only supports an { nameof(ILearningPipelineDataStep)} as an input.");
                 }
 
                 TrainingData = dataStep.Data;
             }
             Output output = EntryPointXGBoostBinary.Add(experiment, this);
-            return new XGBoostBinaryClassifierBinaryClassifierPipelineStep(output);
+            return new XGBoostBinaryPipelineStep(output);
         }
 
-        private class XGBoostBinaryClassifierBinaryClassifierPipelineStep : ILearningPipelinePredictorStep
+        private class XGBoostBinaryPipelineStep : ILearningPipelinePredictorStep
         {
-            public XGBoostBinaryClassifierBinaryClassifierPipelineStep(Output output)
+            public XGBoostBinaryPipelineStep(Output output)
             {
                 Model = output.PredictorModel;
             }
@@ -281,8 +461,5 @@ namespace Scikit.ML.XGBoostWrapper
             public Var<IPredictorModel> Model { get; }
         }
     }
-
-
-
     #endregion
 }

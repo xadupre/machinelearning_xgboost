@@ -6,6 +6,10 @@
     <IsPackable>false</IsPackable>
 
     <Version>0.3.0</Version>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
 
   <ItemGroup>

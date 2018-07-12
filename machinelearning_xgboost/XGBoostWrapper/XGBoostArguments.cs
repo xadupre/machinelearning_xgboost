@@ -1,13 +1,15 @@
 ﻿// See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Text;
+using System.Reflection;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
 using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Internal.Internallearn;
 
 using XGBoostArguments = Scikit.ML.XGBoostWrapper.XGBoostArguments;
-using SignatureBooster = Scikit.ML.XGBoostWrapper.SignatureBooster;
+using SignatureBooster = Scikit.ML.XGBoostWrapper.SignatureXGBooster;
 
 [assembly: LoadableClass(XGBoostArguments.TreeBooster.Summary, typeof(XGBoostArguments.TreeBooster), typeof(XGBoostArguments.TreeBooster.Arguments),
     typeof(SignatureBooster), "egbtree")]
@@ -16,9 +18,17 @@ using SignatureBooster = Scikit.ML.XGBoostWrapper.SignatureBooster;
 [assembly: LoadableClass(XGBoostArguments.LinearBooster.Summary, typeof(XGBoostArguments.LinearBooster), typeof(XGBoostArguments.LinearBooster.Arguments),
     typeof(SignatureBooster), "egblinear")]
 
+
 namespace Scikit.ML.XGBoostWrapper
 {
-    public delegate void SignatureBooster();
+    public delegate void SignatureXGBooster();
+
+    [TlcModule.ComponentKind("BoosterParameterFunction")]
+    public interface ISupportBoosterParameterFactory : IComponentFactory<IBoosterParameter> { }
+    public interface IBoosterParameter
+    {
+        void UpdateParameters(Dictionary<string, string> res);
+    }
 
     /// <summary>
     /// Parameters names comes from XGBoost library. 
@@ -29,39 +39,55 @@ namespace Scikit.ML.XGBoostWrapper
     /// </summary>
     public sealed class XGBoostArguments : LearnerInputBaseWithGroupId
     {
-        [TlcModule.ComponentKind("XGBoosterParameterFunction")]
-        public interface ISupportXGBoosterParameterFactory : IComponentFactory<IBoosterParameter>
-        {
-        }
-
-        public interface IBoosterParameter
-        {
-            void UpdateParameters(Dictionary<string, string> res);
-        }
-
         public abstract class BoosterParameter<TArgs> : IBoosterParameter
             where TArgs : class, new()
         {
-            protected TArgs _args { private set; get; }
+            protected TArgs Args { get; }
 
             protected BoosterParameter(TArgs args)
             {
-                _args = args;
+                Args = args;
             }
 
+            /// <summary>
+            /// Update the parameters by specific Booster, will update parameters into "res" directly.
+            /// </summary>
             public virtual void UpdateParameters(Dictionary<string, string> res)
             {
+                FieldInfo[] fields = Args.GetType().GetFields();
+                foreach (var field in fields)
+                    res[GetArgName(field.Name)] = field.GetValue(Args).ToString();
             }
+        }
+
+        private static string GetArgName(string name)
+        {
+            StringBuilder strBuf = new StringBuilder();
+            bool first = true;
+            foreach (char c in name)
+            {
+                if (char.IsUpper(c))
+                {
+                    if (first)
+                        first = false;
+                    else
+                        strBuf.Append('_');
+                    strBuf.Append(char.ToLower(c));
+                }
+                else
+                    strBuf.Append(c);
+            }
+            return strBuf.ToString();
         }
 
         public sealed class TreeBooster : BoosterParameter<TreeBooster.Arguments>
         {
             public const string Summary = "Parameters for TreeBooster, boost=egbtree{...}.";
-            public const string Name = "xgbdt";
-            public const string FriendlyName = "Tree XGBooster";
+            public const string Name = "egbtree";
+            public const string FriendlyName = "Tree Booster";
 
-            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Traditional Gradient XGBoosting Decision Tree.")]
-            public class Arguments : ISupportXGBoosterParameterFactory
+            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Traditional Gradient Boosting Decision Tree.")]
+            public class Arguments : ISupportBoosterParameterFactory
             {
                 [Argument(ArgumentType.AtMostOnce,
                     HelpText = "Step size shrinkage used in update to prevents overfitting. After each boosting step, we can directly " +
@@ -102,16 +128,16 @@ namespace Scikit.ML.XGBoostWrapper
                 public double colSampleByLevel = 1;
 
                 [Argument(ArgumentType.AtMostOnce,
-                    HelpText = "L2 regularization term on weights, increase this value will make model more conservative.",
-                    ShortName = "l2")]
-                [TGUI(Label = "Lambda(L2)", SuggestedSweeps = "0,0.5,1")]
-                public double lambda = 1;
-
-                [Argument(ArgumentType.AtMostOnce,
                     HelpText = "L1 regularization term on weights, increase this value will make model more conservative.",
                     ShortName = "l1")]
                 [TGUI(Label = "Alpha(L1)", SuggestedSweeps = "0,0.5,1")]
                 public double alpha = 0;
+
+                [Argument(ArgumentType.AtMostOnce,
+                    HelpText = "L2 regularization term on weights, increase this value will make model more conservative.",
+                    ShortName = "l2")]
+                [TGUI(Label = "Lambda(L2)", SuggestedSweeps = "0,0.5,1")]
+                public double lambda = 1;
 
                 public enum TreeMethodEnum
                 {
@@ -150,42 +176,29 @@ namespace Scikit.ML.XGBoostWrapper
             public TreeBooster(Arguments args)
                 : base(args)
             {
-                Contracts.CheckUserArg(_args.gamma >= 0, nameof(_args.gamma), "must be >= 0.");
-                Contracts.CheckUserArg(_args.maxDepth > 1, nameof(_args.maxDepth), "must be > 1.");
-                Contracts.CheckUserArg(_args.minChildWeight >= 0, nameof(_args.minChildWeight), "must be >= 0.");
-                Contracts.CheckUserArg(_args.maxDeltaStep >= 0, nameof(_args.maxDeltaStep), "must be >= 0.");
-                Contracts.CheckUserArg(!(_args.subSample <= 0 || _args.subSample > 1), nameof(_args.subSample), "must be in (0,1].");
-                Contracts.CheckUserArg(!(_args.colSampleByTree <= 0 || _args.colSampleByTree > 1), nameof(_args.colSampleByTree), "must be in (0,1].");
-                Contracts.CheckUserArg(!(_args.colSampleByLevel <= 0 || _args.colSampleByLevel > 1), nameof(_args.colSampleByLevel), "must be in (0,1].");
-                Contracts.CheckUserArg(!(_args.sketchEps <= 0 || _args.sketchEps > 1), nameof(_args.sketchEps), "must be in (0,1].");
-                Contracts.CheckUserArg(!(_args.scalePosWeight < 0 || _args.scalePosWeight > 1), nameof(_args.scalePosWeight), "must be in [0,1].");
+                Contracts.CheckUserArg(Args.gamma >= 0, nameof(Args.gamma), "must be >= 0.");
+                Contracts.CheckUserArg(Args.maxDepth > 1, nameof(Args.maxDepth), "must be > 1.");
+                Contracts.CheckUserArg(Args.minChildWeight >= 0, nameof(Args.minChildWeight), "must be >= 0.");
+                Contracts.CheckUserArg(Args.maxDeltaStep >= 0, nameof(Args.maxDeltaStep), "must be >= 0.");
+                Contracts.CheckUserArg(!(Args.subSample <= 0 || Args.subSample > 1), nameof(Args.subSample), "must be in (0,1].");
+                Contracts.CheckUserArg(!(Args.colSampleByTree <= 0 || Args.colSampleByTree > 1), nameof(Args.colSampleByTree), "must be in (0,1].");
+                Contracts.CheckUserArg(!(Args.colSampleByLevel <= 0 || Args.colSampleByLevel > 1), nameof(Args.colSampleByLevel), "must be in (0,1].");
+                Contracts.CheckUserArg(!(Args.sketchEps <= 0 || Args.sketchEps > 1), nameof(Args.sketchEps), "must be in (0,1].");
+                Contracts.CheckUserArg(!(Args.scalePosWeight < 0 || Args.scalePosWeight > 1), nameof(Args.scalePosWeight), "must be in [0,1].");
             }
 
             public override void UpdateParameters(Dictionary<string, string> res)
             {
                 base.UpdateParameters(res);
-                res["learning_rate"] = _args.learningRate.ToString();
-                res["gamma"] = _args.gamma.ToString();
-                res["max_depth"] = _args.maxDepth.ToString();
-                res["min_child_weight"] = _args.minChildWeight.ToString();
-                res["max_delta_step"] = _args.maxDeltaStep.ToString();
-                res["subsample"] = _args.subSample.ToString();
-                res["colsample_bytree"] = _args.colSampleByTree.ToString();
-                res["colsample_bylevel"] = _args.colSampleByLevel.ToString();
-                res["alpha"] = _args.alpha.ToString();
-                res["tree_method"] = _args.treeMethod.ToString().ToLower();
-                res["sketch_eps"] = _args.sketchEps.ToString();
-                res["scale_pos_weight"] = _args.scalePosWeight.ToString();
-                res["lambda"] = _args.lambda.ToString();
                 res["booster"] = "gbtree";
             }
         }
 
-        public sealed class DartBooster : BoosterParameter<DartBooster.Arguments>
+        public class DartBooster : BoosterParameter<DartBooster.Arguments>
         {
             public const string Summary = "Parameters for DartBooster (includes parameters for TreeBooster), boost=edart{...}.";
-            public const string Name = "xgdart";
-            public const string FriendlyName = "Tree Dropout Tree XGBooster";
+            public const string Name = "edart";
+            public const string FriendlyName = "Tree Dropout Tree Booster";
 
             [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Dropouts meet Multiple Additive Regresion Trees (XGBoost).")]
             public class Arguments : TreeBooster.Arguments
@@ -214,24 +227,22 @@ namespace Scikit.ML.XGBoostWrapper
 
                 [Argument(ArgumentType.AtMostOnce, HelpText = "Probability of skip dropout.  Range: [0, 1].")]
                 public double skipDrop = 0.0;
+
+                public override IBoosterParameter CreateComponent(IHostEnvironment env) => new DartBooster(this);
             }
 
             public DartBooster(Arguments args)
                 : base(args)
             {
-                Contracts.CheckUserArg(!(_args.rateDrop < 0 || _args.rateDrop > 1), "rateDrop", "must be in [0,1].");
-                Contracts.CheckUserArg(!(_args.skipDrop < 0 || _args.skipDrop > 1), "skipDrop", "must be in [0,1].");
+                Contracts.CheckUserArg(!(Args.rateDrop < 0 || Args.rateDrop > 1), "rateDrop", "must be in [0,1].");
+                Contracts.CheckUserArg(!(Args.skipDrop < 0 || Args.skipDrop > 1), "skipDrop", "must be in [0,1].");
             }
 
             public override void UpdateParameters(Dictionary<string, string> res)
             {
                 base.UpdateParameters(res);
-                var tb = new TreeBooster(_args);
+                var tb = new TreeBooster(Args);
                 tb.UpdateParameters(res);
-                res["sample_type"] = _args.sampleType.ToString().ToLower();
-                res["normalize_type"] = _args.normalizeType.ToString().ToLower();
-                res["rate_drop"] = _args.rateDrop.ToString();
-                res["skip_drop"] = _args.skipDrop.ToString();
                 res["booster"] = "dart";
             }
         }
@@ -239,11 +250,11 @@ namespace Scikit.ML.XGBoostWrapper
         public sealed class LinearBooster : BoosterParameter<LinearBooster.Arguments>
         {
             public const string Summary = "Parameters for LinearBooster, boost=elinear{...}.";
-            public const string Name = "xglinear";
+            public const string Name = "elinear";
             public const string FriendlyName = Name;
 
-            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Linear training (XGBoost).")]
-            public class Arguments
+            [TlcModule.Component(Name = Name, FriendlyName = FriendlyName, Desc = "Linear based booster.")]
+            public class Arguments : ISupportBoosterParameterFactory
             {
                 [Argument(ArgumentType.AtMostOnce,
                     HelpText = "Regularization term on bias, default 0 (no L1 reg on bias because it is not important",
@@ -251,17 +262,19 @@ namespace Scikit.ML.XGBoostWrapper
                 public double lambdaBias = 1;
 
                 [Argument(ArgumentType.AtMostOnce,
-                    HelpText = "L2 regularization term on weights, increase this value will make model more conservative.",
-                    ShortName = "l2")]
-                [TGUI(Label = "Lambda(L2)", SuggestedSweeps = "0,0.5,1")]
-                public double lambda = 0;
-
-                [Argument(ArgumentType.AtMostOnce,
                     HelpText =
                         "L1 regularization term on weights, increase this value will make model more conservative.",
                     ShortName = "l1")]
                 [TGUI(Label = "Alpha(L1)", SuggestedSweeps = "0,0.5,1")]
                 public double alpha = 0;
+
+                [Argument(ArgumentType.AtMostOnce,
+                    HelpText = "L2 regularization term on weights, increase this value will make model more conservative.",
+                    ShortName = "l2")]
+                [TGUI(Label = "Lambda(L2)", SuggestedSweeps = "0,0.5,1")]
+                public double lambda = 0;
+
+                public IBoosterParameter CreateComponent(IHostEnvironment env) => new LinearBooster(this);
             }
 
             public LinearBooster(Arguments args)
@@ -272,9 +285,6 @@ namespace Scikit.ML.XGBoostWrapper
             public override void UpdateParameters(Dictionary<string, string> res)
             {
                 base.UpdateParameters(res);
-                res["alpha"] = _args.alpha.ToString();
-                res["lambda"] = _args.lambda.ToString();
-                res["lambda_bias"] = _args.lambdaBias.ToString();
                 res["booster"] = "gblinear";
             }
         }
@@ -304,7 +314,8 @@ namespace Scikit.ML.XGBoostWrapper
         public int numBoostRound = 10;
 
         [Argument(ArgumentType.Multiple, HelpText = "Which booster to use, can be egbtree, gblinear or dart. egbtree and dart use tree based model while gblinear uses linear function.", SortOrder = 3)]
-        public SubComponent<IBoosterParameter, SignatureBooster> booster = new SubComponent<IBoosterParameter, SignatureBooster>("egbtree");
+        public ISupportBoosterParameterFactory booster = new TreeBooster.Arguments();
+        //public SubComponent<IBoosterParameter, SignatureBooster> booster = new SubComponent<IBoosterParameter, SignatureBooster>("egbtree");
 
         [Argument(ArgumentType.AtMostOnce, HelpText = "Verbose", ShortName = "v")]
         public bool verboseEval = false;
@@ -331,7 +342,7 @@ namespace Scikit.ML.XGBoostWrapper
 
         public Dictionary<string, string> ToDict(IHostEnvironment env)
         {
-            Dictionary<string, string> res = new Dictionary<string, string>();
+            var res = new Dictionary<string, string>();
             res["silent"] = silent ? "1" : "0";
             if (nthread.HasValue)
                 res["nthread"] = nthread.Value.ToString();
@@ -364,7 +375,7 @@ namespace Scikit.ML.XGBoostWrapper
             }
             if (!string.IsNullOrEmpty(metric))
                 res["eval_metric"] = metric;
-            var boosterParams = booster.CreateInstance(env);
+            var boosterParams = booster.CreateComponent(env);
             boosterParams.UpdateParameters(res);
             return res;
         }
