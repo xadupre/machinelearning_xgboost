@@ -32,7 +32,7 @@ namespace Scikit.ML.XGBoostWrapper
             _host.CheckValue(_model, "model", "Must have trained a model before creating a predictor.");
             _host.Check(_nbClass > 0, "Must know the number of classes before creating a predictor.");
             // Create a new predictor by loading from the serialized model.
-            return new XGBoostMulticlassPredictor(_host, _model, _nbClass, _classMapping, _isFloatLabel, 
+            return new XGBoostMulticlassPredictor(_host, _model, _nbClass, _classMapping, _isFloatLabel,
                             _nbFeaturesXGboost, _nbFeaturesML);
         }
 

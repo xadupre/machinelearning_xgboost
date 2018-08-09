@@ -16,7 +16,7 @@ namespace Scikit.ML.XGBoostWrapper
     /// optimized. Check XGBoost documentation about the parameters to know more.
     /// </summary>
     // REVIEW xadupre: implement IIncrementalTrainer to do continuous training.
-    public abstract class XGBoostTrainerBase<TOutput, TPredictor> : ITrainer<RoleMappedData, TPredictor>, IIncrementalTrainer<RoleMappedData, TPredictor>
+    public abstract class XGBoostTrainerBase<TOutput, TPredictor> : ITrainer<TPredictor>
         where TPredictor : XGBoostPredictorBase<TOutput>
     {
         #region members
@@ -53,24 +53,36 @@ namespace Scikit.ML.XGBoostWrapper
             _predictionKind = predictionKind;
         }
 
-        public void Train(RoleMappedData data)
+        IPredictor ITrainer.Train(TrainContext ctx)
+        {
+            return TrainModel(ctx);
+        }
+
+        public TPredictor Train(TrainContext ctx)
+        {
+            return TrainModel(ctx);
+        }
+
+        protected TPredictor TrainModel(TrainContext ctx)
         {
             using (var ch = _host.Start("Training with XGBoost"))
             {
-                using (var pch = _host.StartProgressChannel("Training with XGBoost"))
-                    TrainCore(ch, pch, data, null);
-                ch.Done();
+                if (ctx.InitialPredictor == null)
+                {
+                    using (var pch = _host.StartProgressChannel("Training with XGBoost"))
+                        TrainCore(ch, pch, ctx.TrainingSet, null);
+                    ch.Done();
+                }
+                else
+                {
+                    var initPred = ctx.InitialPredictor as TPredictor;
+                    ch.CheckValue(initPred, "InitialPredictor", "InitialPredictor is not of the expected type.");
+                    using (var pch = _host.StartProgressChannel("Continuous Training with XGBoost"))
+                        TrainCore(ch, pch, ctx.TrainingSet, ctx.InitialPredictor as TPredictor);
+                    ch.Done();
+                }
             }
-        }
-
-        public void Train(RoleMappedData data, TPredictor predictor)
-        {
-            using (var ch = _host.Start("Continuous Training with XGBoost"))
-            {
-                using (var pch = _host.StartProgressChannel("Continuous Training with XGBoost"))
-                    TrainCore(ch, pch, data, predictor);
-                ch.Done();
-            }
+            return CreatePredictor();
         }
 
         protected virtual void ValidateTrainInput(IChannel ch, RoleMappedData data)
@@ -366,15 +378,7 @@ namespace Scikit.ML.XGBoostWrapper
             get { return _predictionKind; }
         }
 
-        public void Train(object data)
-        {
-            Train((RoleMappedData)data);
-        }
-
-        IPredictor ITrainer.CreatePredictor()
-        {
-            return CreatePredictor();
-        }
+        public TrainerInfo Info { get { return new TrainerInfo(); } }
 
         #endregion
 

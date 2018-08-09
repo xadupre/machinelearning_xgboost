@@ -3,6 +3,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
+using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Api;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Transforms;
@@ -34,7 +35,7 @@ namespace TestXGBoostWrapper
             IDataTransform pred = null;
             using (var ch = env.Start("Train"))
             {
-                var model = TrainUtils.Train(env, ch, roles, trainer, "Train", null, 0);
+                var model = trainer.Train(new TrainContext(roles));
                 pred = ScoreUtils.GetScorer(model, roles, env, roles.Schema);
             }
 

@@ -37,7 +37,7 @@ namespace Scikit.ML.XGBoostWrapper
             _parent = parent;
             var columns = new[] { schema.Feature };
             var fc = new[] { new KeyValuePair<RoleMappedSchema.ColumnRole, string>(RoleMappedSchema.ColumnRole.Feature, columns[0].Name) };
-            _inputSchema = RoleMappedSchema.Create(schema.Schema, fc);
+            _inputSchema = new RoleMappedSchema(schema.Schema, fc);
             _outputSchema = outputSchema;
 
             _inputCols = new List<int>();
